@@ -1,0 +1,17 @@
+# Maintainer-only local override binary. The SessionStart hook uses
+# plugins/tether/bin/tether-mcp.exe verbatim when present, bypassing
+# the Release download path. This is a dev convenience only - never
+# committed.
+plugins/tether/bin/
+
+# Stray temp dirs in case the hook is run outside Claude Code (e.g.
+# for manual testing). Pattern matches the [guid]-suffixed temp dirs
+# the hook creates under CLAUDE_PLUGIN_DATA, which won't normally be
+# in the repo, but include defensively in case someone runs the
+# script with CLAUDE_PLUGIN_DATA pointed at the repo.
+.download-*
+
+# OS junk
+Thumbs.db
+.DS_Store
+desktop.ini

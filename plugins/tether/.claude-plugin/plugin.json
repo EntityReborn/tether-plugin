@@ -1,0 +1,48 @@
+{
+  "name": "tether",
+  "displayName": "Tether",
+  "description": "Drive a remote Windows machine through Claude Code via a one-shot agent .exe and a cloud relay. Filesystem, shell, registry, event log, screenshots, clipboard, Active Directory, and window control without installing anything beyond the .exe on the remote.",
+  "version": "0.2.61",
+  "publisher": "WildFrog Systems",
+  "homepage": "https://github.com/EntityReborn/tether-plugin",
+  "repository": "https://github.com/EntityReborn/tether-plugin",
+
+  "mcpServers": {
+    "tether": {
+      "command": "${CLAUDE_PLUGIN_DATA}/tether-mcp.exe",
+      "args": [],
+      "description": "Tether MCP server. Spawns one process per Claude Code window and holds the WSS connection to the relay for that session.",
+      "env": {
+        "TETHER_DEFAULT_RELAY": "wss://tether.up.railway.app"
+      }
+    }
+  },
+
+  "hooks": "./hooks/hooks.json",
+
+  "commands": [
+    {
+      "name": "remote-new",
+      "description": "Start a new Tether session. Prints the short code; read it aloud to the remote user.",
+      "file": "commands/remote-new.md"
+    },
+    {
+      "name": "remote-list",
+      "description": "List active Tether sessions held by this Claude Code window.",
+      "file": "commands/remote-list.md"
+    },
+    {
+      "name": "remote-end",
+      "description": "End a Tether session cleanly.",
+      "file": "commands/remote-end.md"
+    }
+  ],
+
+  "skills": [
+    {
+      "name": "tether",
+      "description": "Operating manual for the remote agent: when to use which mcp__tether__* tool, narration contract, session targeting, kill-switch handling, Windows path conventions.",
+      "file": "skills/tether/SKILL.md"
+    }
+  ]
+}
