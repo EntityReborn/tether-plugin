@@ -2,11 +2,10 @@
   "name": "tether",
   "displayName": "Tether",
   "description": "Drive a remote Windows machine through Claude Code via a one-shot agent .exe and a cloud relay. Filesystem, shell, registry, event log, screenshots, clipboard, Active Directory, and window control without installing anything beyond the .exe on the remote.",
-  "version": "0.2.61",
+  "version": "0.2.63",
   "publisher": "WildFrog Systems",
   "homepage": "https://github.com/EntityReborn/tether-plugin",
   "repository": "https://github.com/EntityReborn/tether-plugin",
-
   "mcpServers": {
     "tether": {
       "command": "${CLAUDE_PLUGIN_DATA}/tether-mcp.exe",
@@ -17,9 +16,7 @@
       }
     }
   },
-
   "hooks": "./hooks/hooks.json",
-
   "commands": [
     {
       "name": "remote-new",
@@ -37,7 +34,6 @@
       "file": "commands/remote-end.md"
     }
   ],
-
   "skills": [
     {
       "name": "tether",
