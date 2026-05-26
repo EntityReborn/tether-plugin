@@ -2,7 +2,7 @@
   "name": "tether",
   "displayName": "Tether",
   "description": "Drive a remote Windows machine through Claude Code via a one-shot agent .exe and a cloud relay. Filesystem, shell, registry, event log, screenshots, clipboard, Active Directory, and window control without installing anything beyond the .exe on the remote.",
-  "version": "0.2.75",
+  "version": "0.2.76",
   "publisher": "WildFrog Systems",
   "homepage": "https://github.com/EntityReborn/tether-plugin",
   "repository": "https://github.com/EntityReborn/tether-plugin",
