@@ -8,9 +8,13 @@
   "repository": "https://github.com/EntityReborn/tether-plugin",
   "mcpServers": {
     "tether": {
-      "command": "${CLAUDE_PLUGIN_DATA}/tether-mcp.exe",
-      "args": [],
-      "description": "Tether MCP server. Spawns one process per Claude Code window and holds the WSS connection to the relay for that session.",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${CLAUDE_PLUGIN_ROOT}/hooks/launch-tether-mcp.ps1"
+      ],
+      "description": "Tether MCP server. Spawned via launch-tether-mcp.ps1 so the binary is guaranteed to exist before MCP initialize (races SessionStart otherwise).",
       "env": {
         "TETHER_DEFAULT_RELAY": "wss://tether.up.railway.app"
       }

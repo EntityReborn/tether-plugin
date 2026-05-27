@@ -24,7 +24,11 @@ $ErrorActionPreference = 'Stop'
 
 function Log {
     param([string]$msg)
-    Write-Host "[tether/ensure-binary] $msg"
+    # Stderr only - this script is reused by launch-tether-mcp.ps1 as part of
+    # the MCP server spawn, where the script's stdout is the MCP JSON-RPC
+    # channel and must stay byte-clean. Hooks (SessionStart) also work fine
+    # with stderr.
+    [Console]::Error.WriteLine("[tether/ensure-binary] $msg")
 }
 
 # Resolve required env vars. Claude Code substitutes ${CLAUDE_PLUGIN_*}
