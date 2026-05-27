@@ -16,29 +16,5 @@
       }
     }
   },
-  "hooks": "./hooks/hooks.json",
-  "commands": [
-    {
-      "name": "remote-new",
-      "description": "Start a new Tether session. Prints the short code; read it aloud to the remote user.",
-      "file": "commands/remote-new.md"
-    },
-    {
-      "name": "remote-list",
-      "description": "List active Tether sessions held by this Claude Code window.",
-      "file": "commands/remote-list.md"
-    },
-    {
-      "name": "remote-end",
-      "description": "End a Tether session cleanly.",
-      "file": "commands/remote-end.md"
-    }
-  ],
-  "skills": [
-    {
-      "name": "tether",
-      "description": "Operating manual for the remote agent: when to use which mcp__tether__* tool, narration contract, session targeting, kill-switch handling, Windows path conventions.",
-      "file": "skills/tether/SKILL.md"
-    }
-  ]
+  "hooks": "./hooks/hooks.json"
 }
