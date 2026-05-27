@@ -15,6 +15,5 @@
         "TETHER_DEFAULT_RELAY": "wss://tether.up.railway.app"
       }
     }
-  },
-  "hooks": "./hooks/hooks.json"
+  }
 }
