@@ -1,12 +1,21 @@
-# Tether plugin SessionStart hook: ensure tether-mcp.exe is present
-# at ${CLAUDE_PLUGIN_DATA}/tether-mcp.exe and matches the version
+# Tether plugin SessionStart hook: ensure the tether-mcp binary is
+# present at ${CLAUDE_PLUGIN_DATA}/<binary> and matches the version
 # pinned in ${CLAUDE_PLUGIN_ROOT}/version.txt.
 #
+# Cross-platform: this script runs under PowerShell 7 (pwsh) on
+# Windows, Linux, and macOS (see plugin.json / hooks.json - both
+# invoke `pwsh`, not Windows PowerShell). The platform decides:
+#   - the binary name: tether-mcp.exe (Windows) vs tether-mcp (POSIX)
+#   - the published release asset to download (per OS/arch)
+#   - whether the installed binary needs an exec bit (POSIX: chmod +x)
+# Windows + Linux ship today; macOS is not yet published and exits
+# with a clear error rather than downloading an unusable asset.
+#
 # Resolution order:
-#   1. Dev override - if ${CLAUDE_PLUGIN_ROOT}/bin/tether-mcp.exe exists
+#   1. Dev override - if ${CLAUDE_PLUGIN_ROOT}/bin/<binary> exists
 #      (a maintainer's locally-built binary), copy it verbatim.
 #   2. Cached - if ${CLAUDE_PLUGIN_DATA}/tether-mcp.version matches
-#      version.txt and the .exe exists, no-op.
+#      version.txt and the binary exists, no-op.
 #   3. Download - use `gh release download v<version>` against
 #      EntityReborn/tether-plugin, verify SHA-256 against the published
 #      sidecar, atomically replace the cached binary.
@@ -43,16 +52,48 @@ if (-not $root -or -not $data) {
     exit 0
 }
 
+# --- 0) Resolve platform: binary name + release asset ---
+# $IsWindows / $IsLinux / $IsMacOS are PowerShell Core (pwsh)
+# automatic variables; they are always defined here because the
+# plugin invokes `pwsh`. The release asset names are produced by
+# RemoteClaude's release.yml: tether-mcp.exe (windows/amd64) and
+# tether-mcp-linux-amd64 (linux/amd64), each with a .sha256 sidecar.
+if ($IsMacOS) {
+    Log "ERROR: tether-mcp is not yet published for macOS (Windows + Linux only)."
+    Log "  macOS support is planned; see https://github.com/EntityReborn/tether-plugin for updates."
+    exit 1
+}
+if ($IsWindows) {
+    $exeName   = 'tether-mcp.exe'
+    $assetExe  = 'tether-mcp.exe'
+} else {
+    # Linux (the macOS branch already exited above).
+    $exeName   = 'tether-mcp'
+    $assetExe  = 'tether-mcp-linux-amd64'
+}
+$assetSha = "$assetExe.sha256"
+
+# chmod +x on POSIX; no-op on Windows. PowerShell's file cmdlets
+# (Copy-Item / Move-Item) do not set the executable bit, so the
+# freshly-installed native binary would be non-executable without this.
+function Set-ExecBit {
+    param([string]$path)
+    if (-not $IsWindows) {
+        & chmod '+x' $path
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $data | Out-Null
 
-$target = Join-Path $data 'tether-mcp.exe'
+$target = Join-Path $data $exeName
 $marker = Join-Path $data 'tether-mcp.version'
 
 # --- 1) Dev override ---
-$devOverride = Join-Path $root 'bin\tether-mcp.exe'
+$devOverride = Join-Path $root 'bin' $exeName
 if (Test-Path -LiteralPath $devOverride) {
     try {
         Copy-Item -LiteralPath $devOverride -Destination $target -Force
+        Set-ExecBit $target
         "dev-$(Get-Date -Format yyyyMMddHHmmss)" | Set-Content -LiteralPath $marker -NoNewline
         Log "using dev-override binary from $devOverride"
     } catch {
@@ -100,7 +141,7 @@ $tag = "v$wanted"
 $tmpDir = Join-Path $data ".download-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
 try {
-    Log "downloading tether-mcp.exe@$tag from EntityReborn/tether-plugin"
+    Log "downloading $assetExe@$tag from EntityReborn/tether-plugin"
     # gh release download exits non-zero on failure (auth, not found,
     # network). Capture exit code without throwing so we can give a
     # cleaner error message than PowerShell's default.
@@ -109,8 +150,8 @@ try {
     try {
         & gh release download $tag `
             --repo EntityReborn/tether-plugin `
-            --pattern 'tether-mcp.exe' `
-            --pattern 'tether-mcp.exe.sha256' `
+            --pattern $assetExe `
+            --pattern $assetSha `
             --dir $tmpDir 2>&1 | ForEach-Object { Log "  gh: $_" }
         $ghExit = $LASTEXITCODE
     } finally {
@@ -123,29 +164,29 @@ try {
         exit 1
     }
 
-    $dlExe = Join-Path $tmpDir 'tether-mcp.exe'
-    $dlSha = Join-Path $tmpDir 'tether-mcp.exe.sha256'
+    $dlExe = Join-Path $tmpDir $assetExe
+    $dlSha = Join-Path $tmpDir $assetSha
 
     if (-not (Test-Path -LiteralPath $dlExe)) {
-        Log "ERROR: tether-mcp.exe missing from release $tag"
+        Log "ERROR: $assetExe missing from release $tag"
         exit 1
     }
     if (-not (Test-Path -LiteralPath $dlSha)) {
-        Log "ERROR: tether-mcp.exe.sha256 missing from release $tag"
+        Log "ERROR: $assetSha missing from release $tag"
         exit 1
     }
 
     # --- 5) Verify SHA-256 ---
-    # The sidecar file is `<hex>  tether-mcp.exe` (sha256sum format)
-    # or just `<hex>` (Get-FileHash style). Take the first whitespace-
+    # The sidecar file is `<hex>  <asset>` (sha256sum format) or just
+    # `<hex>` (Get-FileHash style). Take the first whitespace-
     # separated token to handle both.
     $expected = (Get-Content -LiteralPath $dlSha -Raw).Trim() -split '\s+' | Select-Object -First 1
     $expected = $expected.ToLower()
     $actual = (Get-FileHash -LiteralPath $dlExe -Algorithm SHA256).Hash.ToLower()
     if ($expected -ne $actual) {
-        Log "ERROR: SHA-256 mismatch for tether-mcp.exe at $tag"
-        Log "  expected (from $tag/tether-mcp.exe.sha256): $expected"
-        Log "  actual:                                     $actual"
+        Log "ERROR: SHA-256 mismatch for $assetExe at $tag"
+        Log "  expected (from $tag/$assetSha): $expected"
+        Log "  actual:                         $actual"
         Log "  Refusing to install; the binary or sidecar may have been tampered with."
         exit 1
     }
@@ -159,8 +200,9 @@ try {
     # vector in the source repo's H2 review.
     try {
         Move-Item -LiteralPath $dlExe -Destination $target -Force -ErrorAction Stop
+        Set-ExecBit $target
         $wanted | Set-Content -LiteralPath $marker -NoNewline
-        Log "installed tether-mcp.exe v$wanted (sha256 $($actual.Substring(0,16))...)"
+        Log "installed $exeName v$wanted (sha256 $($actual.Substring(0,16))...)"
     } catch {
         Log "WARN: could not replace $target (likely in use by another Claude Code window): $_"
         Log "  Close all Claude Code windows and reopen to activate v$wanted."
