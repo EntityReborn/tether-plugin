@@ -8,7 +8,7 @@
   "repository": "https://github.com/EntityReborn/tether-plugin",
   "mcpServers": {
     "tether": {
-      "command": "powershell",
+      "command": "pwsh",
       "args": [
         "-NoProfile",
         "-ExecutionPolicy",
@@ -16,7 +16,7 @@
         "-File",
         "${CLAUDE_PLUGIN_ROOT}/hooks/launch-tether-mcp.ps1"
       ],
-      "description": "Tether MCP server. Spawned via launch-tether-mcp.ps1 so the binary is guaranteed to exist before MCP initialize (races SessionStart otherwise).",
+      "description": "Tether MCP server. Spawned via launch-tether-mcp.ps1 (PowerShell 7 / pwsh, cross-platform) so the binary is guaranteed to exist before MCP initialize (races SessionStart otherwise).",
       "env": {
         "TETHER_DEFAULT_RELAY": "wss://tether.up.railway.app"
       }

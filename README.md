@@ -22,10 +22,17 @@ mechanisms.
 
 Prerequisites:
 
-- Windows 10 or 11 (the MCP binary is Windows-only).
+- **Windows 10/11 or Linux (x86-64).** macOS is not yet published; the
+  plugin prints a clear error there rather than installing an unusable
+  binary.
+- **PowerShell 7 (`pwsh`)** on PATH. The launcher and SessionStart hook
+  run under `pwsh` on every platform (not Windows PowerShell 5.1).
+  - Windows: `winget install Microsoft.PowerShell`
+  - Linux: install `powershell` from your distro / Microsoft's repo
+    (Arch: `pwsh`/`powershell-bin` from the AUR), so `pwsh` resolves.
 - [GitHub CLI](https://cli.github.com) installed and authenticated:
 
-```powershell
+```bash
 gh auth login
 ```
 
@@ -41,9 +48,10 @@ Then in Claude Code:
 ```
 
 That's it. On the next session start the plugin downloads the matching
-`tether-mcp.exe` from this repo's Releases, verifies its SHA-256, and
-caches it under the plugin's per-user data directory. Future sessions
-reuse the cached copy until `version.txt` changes here.
+binary for your OS (`tether-mcp.exe` on Windows, `tether-mcp-linux-amd64`
+on Linux) from this repo's Releases, verifies its SHA-256, and caches it
+under the plugin's per-user data directory. Future sessions reuse the
+cached copy until `version.txt` changes here.
 
 ### Claude Desktop (Pro / Team / Enterprise)
 
@@ -105,8 +113,9 @@ plugins/tether/
   .claude-plugin/plugin.json             plugin manifest
   version.txt                            pinned binary version (e.g. "0.2.61")
   hooks/
-    hooks.json                           SessionStart hook wiring
-    ensure-binary.ps1                    downloader + integrity check
+    hooks.json                           SessionStart hook wiring (pwsh)
+    ensure-binary.ps1                    downloader + integrity check (cross-platform)
+    launch-tether-mcp.ps1                MCP server launcher (cross-platform)
   commands/                              /remote-new, /remote-list, /remote-end
   skills/tether/SKILL.md                 operating manual
 README.md
@@ -117,24 +126,29 @@ README.md
 ### Claude Code
 
 Maintainers can test a locally-built binary without cutting a release.
-Drop the .exe at:
+Drop the binary for your OS at:
 
 ```
-plugins/tether/bin/tether-mcp.exe
+plugins/tether/bin/tether-mcp.exe    # Windows
+plugins/tether/bin/tether-mcp        # Linux/macOS (native, +x)
 ```
 
 The hook checks for this path first; if present, it's used verbatim
-and no download happens. `plugins/tether/bin/` is gitignored, so end
-users never see it.
+(and `chmod +x`'d on POSIX) and no download happens.
+`plugins/tether/bin/` is gitignored, so end users never see it.
 
 To produce a usable binary:
 
 ```powershell
-# In the RemoteClaude (source) repo:
+# Windows, in the RemoteClaude (source) repo:
 .\build.ps1 -Target mcp
-
-# Then copy to the dev-override path:
 Copy-Item mcp\builds\tether-mcp.exe ..\tether-plugin\plugins\tether\bin\tether-mcp.exe
+```
+
+```bash
+# Linux, in the RemoteClaude (source) repo:
+make mcp
+cp mcp/builds/tether-mcp ../tether-plugin/plugins/tether/bin/tether-mcp
 ```
 
 ### Claude Desktop
